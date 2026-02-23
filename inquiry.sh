@@ -74,12 +74,25 @@ inquiry_primaria() {
     IO_REDIS_DB_SESSION="2"
   fi
 
-  # Chrome/Puppeteer (opcional - WhatsApp; deixe vazio para padrão)
+  # Chrome/Puppeteer (opcional - WhatsApp; padrão headless ou Docker Browserless)
   echo ""
-  echo "  Chrome/Puppeteer: para WhatsApp. Deixe vazio para usar padrão (headless)."
-  prompt_text CHROME_BIN "Caminho do Chrome (vazio = padrão)" ""
-  prompt_text CHROME_WS "URL WebSocket Chrome existente (vazio = não usar)" ""
-  
+  echo "  Chrome/Puppeteer: para WhatsApp. Pode usar Docker Browserless (Chrome remoto) ou deixar vazio."
+  resp=$(prompt_yesno "Instalar Chrome remoto (Docker Browserless) agora?" "n")
+  if [[ "$resp" == "s" ]]; then
+    if eval "$("${PROJECT_ROOT}/scripts/install_chrome_ws.sh" 2>/dev/null)"; then
+      CHROME_BIN="${CHROME_BIN:-}"
+      CHROME_WS="${CHROME_WS:-}"
+      log_ok "Browserless subiu. CHROME_WS sera gravado no .env."
+    else
+      log_warn "Docker nao disponivel ou falha. Use Chrome local (deixe CHROME_WS vazio)."
+      CHROME_BIN=""
+      CHROME_WS=""
+    fi
+  else
+    prompt_text CHROME_BIN "Caminho do Chrome (vazio = padrão)" ""
+    prompt_text CHROME_WS "URL WebSocket Chrome existente (vazio = não usar)" ""
+  fi
+
   # Salvar config para install_instancia
   mkdir -p "$PROJECT_ROOT"
   cat > "${PROJECT_ROOT}/config" << CONFIGEOF
@@ -108,8 +121,10 @@ IO_REDIS_SERVER=$IO_REDIS_SERVER
 IO_REDIS_PORT=$IO_REDIS_PORT
 IO_REDIS_PASSWORD=$IO_REDIS_PASSWORD
 IO_REDIS_DB_SESSION=$IO_REDIS_DB_SESSION
-CHROME_BIN=$CHROME_BIN
-CHROME_WS=$CHROME_WS
+CHROME_BIN=${CHROME_BIN:-}
+CHROME_WS=${CHROME_WS:-}
+BROWSERLESS_TOKEN=${BROWSERLESS_TOKEN:-}
+BROWSERLESS_PORT=${BROWSERLESS_PORT:-}
 CONFIGEOF
   chmod 600 "${PROJECT_ROOT}/config"
   log_ok "Configuração salva em ${PROJECT_ROOT}/config"

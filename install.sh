@@ -15,7 +15,7 @@ done
 PROJECT_ROOT="$( cd -P "$( dirname "$SOURCE" )" 2>/dev/null && pwd )"
 
 # Corrige line endings Windows (CRLF) -> Unix (LF)
-for _f in "${PROJECT_ROOT}"/*.sh "${PROJECT_ROOT}"/variables/*.sh "${PROJECT_ROOT}"/lib/*.sh "${PROJECT_ROOT}"/utils/*.sh "${PROJECT_ROOT}"/scripts/*.sh "${PROJECT_ROOT}"/install_primaria "${PROJECT_ROOT}"/install_instancia; do
+for _f in "${PROJECT_ROOT}"/*.sh "${PROJECT_ROOT}"/variables/*.sh "${PROJECT_ROOT}"/lib/*.sh "${PROJECT_ROOT}"/utils/*.sh "${PROJECT_ROOT}"/scripts/*.sh "${PROJECT_ROOT}"/scripts/*.yml "${PROJECT_ROOT}"/install_primaria "${PROJECT_ROOT}"/install_instancia; do
   [ -f "$_f" ] && sed -i 's/\r$//' "$_f" 2>/dev/null || true
 done
 
@@ -54,6 +54,7 @@ show_menu() {
   echo -e "  ${GREEN}4)${NC} Remover instalação     - Parar PM2, remover Nginx, opcional: banco/dados"
   echo -e "  ${GREEN}5)${NC} Atualizar              - Puxar alterações do GitHub e recompilar"
   echo -e "  ${GREEN}6)${NC} Corrigir QR (Puppeteer) - Dependências Chrome para WhatsApp gerar QR code"
+  echo -e "  ${GREEN}7)${NC} Ver portas ocupadas    - Listar portas em uso para evitar conflito entre instâncias"
   echo -e "  ${GREEN}0)${NC} Sair"
   echo -e ""
 }
@@ -63,7 +64,7 @@ main() {
     show_banner
     show_menu
 
-    read -p "  Opção [0-6]: " opcao
+    read -p "  Opção [0-7]: " opcao
 
     case "$opcao" in
       1)
@@ -103,6 +104,11 @@ main() {
       6)
         echo ""
         "${PROJECT_ROOT}/scripts/install_puppeteer_deps.sh"
+        read -p "Pressione Enter para voltar ao menu..." dummy
+        ;;
+      7)
+        echo ""
+        "${PROJECT_ROOT}/scripts/ver_portas_ocupadas.sh"
         read -p "Pressione Enter para voltar ao menu..." dummy
         ;;
       0)
