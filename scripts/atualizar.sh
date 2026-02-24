@@ -82,10 +82,23 @@ read -p "Atualizar esta instância? (S/n): " r
 r="${r:-s}"
 [[ "$r" != "s" && "$r" != "S" ]] && { echo "Cancelado."; exit 0; }
 
-# Git pull
-log_step "Puxando alterações do GitHub..."
-sudo -u "${DEPLOY_USER:-deploy}" bash -c "cd '$INST_DIR' && git fetch origin && git checkout '$REPO_BRANCH' && git pull origin '$REPO_BRANCH'"
-log_ok "Código atualizado"
+# Git: sem prompt de usuário/senha (GIT_TERMINAL_PROMPT=0); remote prevalece (reset --hard)
+log_step "Puxando alterações do GitHub (alterações locais serão descartadas)..."
+if ! sudo -u "${DEPLOY_USER:-deploy}" env GIT_TERMINAL_PROMPT=0 bash -c "
+  set -e
+  cd '$INST_DIR'
+  git fetch origin
+  git checkout -B '$REPO_BRANCH' 'origin/$REPO_BRANCH' 2>/dev/null || true
+  git reset --hard 'origin/$REPO_BRANCH'
+  git clean -fd -e 'backend/.env' -e 'frontend/config/.env.production' -e 'backend/uploads' 2>/dev/null || git clean -fd
+"; then
+  echo ""
+  log_err "Falha ao atualizar (fetch/merge). Para evitar prompt de senha:"
+  echo "  1. Use SSH: sudo -u ${DEPLOY_USER:-deploy} bash -c \"cd '$INST_DIR' && git remote set-url origin git@github.com:USUARIO/REPO.git\""
+  echo "  2. Ou configure credenciais: sudo -u ${DEPLOY_USER:-deploy} git config --global credential.helper store"
+  exit 1
+fi
+log_ok "Código atualizado (igual ao remoto)"
 
 # Backend
 log_step "Atualizando backend (deps, prisma, build, migrate)..."
