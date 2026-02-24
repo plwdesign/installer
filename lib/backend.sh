@@ -9,27 +9,12 @@ backend_set_env() {
   
   log_step "Configurando .env do backend..."
   
-  # Redis: REDIS_URI ou IO_REDIS_* (senha vazia = backend usa DB_PASS)
-  local redis_block="REDIS_URI=
+  # Redis: 127.0.0.1, senha = mesma do PostgreSQL (REDIS_URI única)
+  local redis_block="REDIS_URI=redis://:PLACEHOLDER_PASS@127.0.0.1:6379/2
 USER_LIMIT=10000
 CONNECTIONS_LIMIT=100000
 CLOSED_SEND_BY_ME=true"
-  if [[ -n "${IO_REDIS_SERVER:-}" ]]; then
-    redis_block="# Redis (IO_REDIS_* ou REDIS_URI). Senha vazia = usa DB_PASS
-REDIS_URI=
-IO_REDIS_SERVER=${IO_REDIS_SERVER:-127.0.0.1}
-IO_REDIS_PORT=${IO_REDIS_PORT:-6379}
-IO_REDIS_PASSWORD=${IO_REDIS_PASSWORD:-}
-IO_REDIS_DB_SESSION=${IO_REDIS_DB_SESSION:-2}
-USER_LIMIT=10000
-CONNECTIONS_LIMIT=100000
-CLOSED_SEND_BY_ME=true"
-  fi
 
-  # Chrome/Puppeteer (WhatsApp)
-  local chrome_bin="${CHROME_BIN:-}"
-  local chrome_ws="${CHROME_WS:-}"
-  
   cat > "$backend_env" << ENVEOF
 NODE_ENV=production
 PORT=${PORT_BACKEND}
@@ -56,12 +41,6 @@ ADMIN_PASSWORD=${ADMIN_PASSWORD}
 ADMIN_NAME=${ADMIN_NAME}
 
 $redis_block
-
-# Chrome/Puppeteer (WhatsApp). protocolTimeout evita timeout no sync de grupos
-CHROME_BIN=$chrome_bin
-CHROME_WS=$chrome_ws
-CHROME_ARGS=--no-sandbox --disable-setuid-sandbox
-CHROME_PROTOCOL_TIMEOUT=180000
 
 # Segurança (rate limits, blocklist)
 RATE_LIMIT_GENERAL=100

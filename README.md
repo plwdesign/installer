@@ -39,8 +39,7 @@ sudo ./install.sh
 | 3 | **Trocar domínio** - Alterar domínios API/App e gerar novo SSL |
 | 4 | **Remover instalação** - Parar PM2, remover Nginx, opcional: banco/dados |
 | 5 | **Atualizar** - Puxar alterações do GitHub e recompilar |
-| 6 | **Corrigir QR (Puppeteer)** - Dependências Chrome para WhatsApp gerar QR code |
-| 7 | **Ver portas ocupadas** - Listar portas em uso para evitar conflito entre instâncias |
+| 6 | **Ver portas ocupadas** - Listar portas em uso para evitar conflito entre instâncias |
 | 0 | Sair |
 
 ## Primeira instalação (comando único)
@@ -70,14 +69,9 @@ Escolha a opção **1** (Instalação primária). A instância será criada em `
 | E-mail admin | admin@admin.com | Login do SuperAdmin |
 | Senha admin | *** | Senha do SuperAdmin |
 | **Redis** | | |
-| Host do Redis | 127.0.0.1 (ou vazio) | Deixe vazio para não usar Redis. Use 127.0.0.1 para instalar Redis no servidor. |
-| Porta Redis | 6379 | Porta do Redis |
-| Senha Redis | (vazio = mesma do banco) | Se vazio, o backend usa a senha do PostgreSQL (DB_PASS). Recomendado Redis 6.2+ para filas BullMQ. |
-| DB Redis | 2 | Número do banco Redis (0-15) |
-| **Chrome/Puppeteer** | | (opcional, para WhatsApp) |
-| Instalar Docker Browserless? | (s/N) | Se sim, sobe Chrome remoto (porta 3999) e grava CHROME_WS no .env |
-| Caminho do Chrome | (vazio) | Se não usar Docker, deixe vazio para padrão headless |
-| WebSocket Chrome | (vazio) | URL de um Chrome já aberto, ou preenchido pelo instalador se usou Docker |
+O instalador usa **Redis** em 127.0.0.1 com a **mesma senha do PostgreSQL** (configuração fixa; não é perguntado).
+
+O WhatsApp usa **libzapitu-rf** (API direta, nova API). Não são usados whatsapp-web.js nem Chrome/Puppeteer; sessões e autenticação ficam no **PostgreSQL** (tabela WhatsappAuthState).
 
 ### Subdomínios
 
@@ -96,7 +90,7 @@ cd automacao/installer
 sudo ./install_instancia
 ```
 
-Será solicitado o nome da nova instância, senha do banco e subdomínios. Cada instância usa portas e bancos diferentes. O **Chrome WS (Docker Browserless)** da instalação anterior é reutilizado (uma instância do Browserless atende todas).
+Será solicitado o nome da nova instância, senha do banco e subdomínios. Cada instância usa portas e bancos diferentes.
 
 **Ver portas ocupadas (menu 7):** antes de instalar uma nova instância, use a opção **7** para listar quais portas estão em uso (80, 443, 5432, 6379, 3000, 3999, 4250, 5173) e evitar conflito.
 
@@ -124,13 +118,13 @@ Será perguntado o que remover: processos PM2, configs Nginx, banco de dados e a
 
 ## Redis e backend
 
-O backend usa **Redis** para filas (BullMQ: campanhas agendadas, faturas) e blocklist dinâmica. Durante a instalação primária:
+O backend usa **Redis** para filas (BullMQ) e blocklist. O instalador:
 
-- Se você informar **Host do Redis** = `127.0.0.1` ou `localhost`, o instalador **instala o Redis** no servidor.
-- **Senha do Redis**: se deixar vazio, o backend usa a **mesma senha do banco** (DB_PASS). Para definir senha no Redis: edite `/etc/redis/redis.conf` (linha `requirepass sua_senha`), reinicie `sudo systemctl restart redis-server`.
-- Recomendado **Redis 6.2+** para BullMQ; com Redis 5.x o sistema faz fallback em processo e continua funcionando.
+- Instala sempre a **versão mais recente** do Redis (repositório oficial).
+- Usa **127.0.0.1:6379** com a **mesma senha do PostgreSQL** (REDIS_URI no .env).
+- Configura `requirepass` no Redis com a senha do banco automaticamente.
 
-O `.env` do backend é gerado com: `IO_REDIS_SERVER`, `IO_REDIS_PORT`, `IO_REDIS_PASSWORD`, `IO_REDIS_DB_SESSION`, `CHROME_*`, rate limits e blocklist.
+O `.env` do backend é gerado com REDIS_URI, rate limits e blocklist. Não são usadas variáveis CHROME_* (WhatsApp usa libzapitu-rf, sem browser).
 
 ## Estrutura após instalação
 
@@ -158,15 +152,9 @@ pm2 restart post01-backend
 pm2 logs post01-backend
 ```
 
-## QR Code não aparece (libnspr4.so / Puppeteer)
+## QR Code do WhatsApp
 
-Se o WhatsApp não gerar QR code e aparecer erro `libnspr4.so: cannot open shared object file`, instale as dependências do Chrome:
-
-```bash
-cd automacao/installer
-sudo ./scripts/install_puppeteer_deps.sh
-pm2 restart gruposzap-backend
-```
+O backend usa **libzapitu-rf** para gerar o QR (sem Chrome/Puppeteer). O QR é exibido no painel ao conectar uma sessão. Estado de autenticação fica no PostgreSQL. Se o QR não aparecer, verifique os logs do backend (`pm2 logs NOME-backend`).
 
 ## Migrations com falha
 

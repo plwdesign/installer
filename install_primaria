@@ -43,9 +43,9 @@ system_postgres_install
 system_pm2_install
 system_nginx_install
 system_certbot_install
-system_puppeteer_deps_install
-# Redis: instala se o host configurado for localhost (filas BullMQ, blocklist)
-[[ "${IO_REDIS_SERVER:-}" == "127.0.0.1" || "${IO_REDIS_SERVER:-}" == "localhost" ]] && system_redis_install || true
+# Redis: sempre 127.0.0.1, instala versão mais recente e configura senha = PostgreSQL
+system_redis_install
+system_redis_configure_password "$DB_PASS"
 
 system_git_clone "$INST_DIR" "$REPO_URL" "$REPO_BRANCH" "$DEPLOY_USER"
 

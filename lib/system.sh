@@ -33,17 +33,39 @@ system_postgres_install() {
   log_ok "PostgreSQL instalado"
 }
 
-# Redis (filas BullMQ, blocklist dinâmica; recomendado 6.2+)
+# Redis (filas BullMQ, blocklist) - sempre instala a versão mais recente (repositório oficial Redis)
 system_redis_install() {
   if command -v redis-server &>/dev/null; then
     log_ok "Redis já instalado ($(redis-server --version 2>/dev/null || echo 'redis-server'))"
     return 0
   fi
-  log_step "Instalando Redis..."
-  sudo apt-get install -y redis-server
+  log_step "Instalando Redis (versão mais recente via repositório oficial)..."
+  local distro
+  distro=$(lsb_release -cs 2>/dev/null || echo "")
+  if [[ -n "$distro" ]]; then
+    curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg 2>/dev/null || true
+    echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb ${distro} main" | sudo tee /etc/apt/sources.list.d/redis.list >/dev/null 2>&1 || true
+    sudo apt-get update -qq
+  fi
+  sudo apt-get install -y redis-server 2>/dev/null || sudo apt-get install -y redis
   sudo systemctl start redis-server 2>/dev/null || sudo systemctl start redis 2>/dev/null || true
   sudo systemctl enable redis-server 2>/dev/null || sudo systemctl enable redis 2>/dev/null || true
-  log_ok "Redis instalado. Para usar senha: edite /etc/redis/redis.conf (requirepass) e reinicie: sudo systemctl restart redis-server"
+  log_ok "Redis instalado"
+}
+
+# Configura requirepass no Redis com a senha do PostgreSQL (127.0.0.1)
+system_redis_configure_password() {
+  local pass="$1"
+  [[ -z "$pass" ]] && return 0
+  local conf="/etc/redis/redis.conf"
+  [[ ! -f "$conf" ]] && return 0
+  if grep -qE "^requirepass " "$conf" 2>/dev/null; then
+    sudo sed -i "s|^requirepass .*|requirepass $pass|" "$conf" 2>/dev/null || true
+  else
+    echo "requirepass $pass" | sudo tee -a "$conf" >/dev/null 2>/dev/null || true
+  fi
+  sudo systemctl restart redis-server 2>/dev/null || sudo systemctl restart redis 2>/dev/null || true
+  log_ok "Redis configurado com senha (mesma do PostgreSQL)"
 }
 
 system_pm2_install() {
@@ -77,24 +99,11 @@ system_certbot_install() {
   log_ok "Certbot instalado"
 }
 
-# Dependências para Puppeteer/Chrome (WhatsApp Web.js - QR code em produção)
+# WhatsApp usa libzapitu-rf (API direta, sem whatsapp-web.js nem Chrome/Puppeteer).
+# Sessões e auth ficam no PostgreSQL (WhatsappAuthState). Nenhuma dependência de browser.
+# Esta função é mantida vazia para compatibilidade com scripts que a chamem.
 system_puppeteer_deps_install() {
-  log_step "Instalando dependências do Chrome (WhatsApp/Puppeteer)..."
-  sudo apt-get install -y \
-    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
-    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
-    libxrandr2 libgbm1 libasound2 libpango-1.0-0 libcairo2 \
-    libx11-6 libx11-xcb1 libxcb1 libxext6 libxshmfence1 \
-    fonts-liberation xdg-utils 2>/dev/null || true
-  sudo apt-get install -y \
-    gconf-service libasound2 libatk1.0-0 libatk-bridge2.0-0 libc6 \
-    libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 \
-    libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 \
-    libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 \
-    libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 \
-    libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates \
-    fonts-liberation libnss3 xdg-utils wget 2>/dev/null || true
-  log_ok "Dependências Chrome/Puppeteer instaladas"
+  log_ok "WhatsApp usa libzapitu-rf (sem Chrome/Puppeteer)"
 }
 
 # Cria usuário deploy com home /home/deploy para rodar a aplicação

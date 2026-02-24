@@ -18,8 +18,8 @@ inquiry_primaria() {
   if [[ -z "$REPO_URL" ]]; then
     prompt_text REPO_URL "URL do repositório Git" "https://github.com/seu-usuario/automacao.git"
   fi
-  prompt_text REPO_BRANCH "Branch do repositório" "main"
-  
+  REPO_BRANCH="${REPO_BRANCH:-main}"
+
   # Banco de dados
   prompt_text DB_USER "Usuário PostgreSQL" "postgres"
   prompt_text DB_PASS "Senha do banco de dados" "" 1
@@ -60,38 +60,11 @@ inquiry_primaria() {
   [[ -z "$ADMIN_PASSWORD" ]] && ADMIN_PASSWORD="changeme123"
   prompt_text ADMIN_NAME "Nome do administrador" "Administrador"
 
-  # Redis (opcional - filas BullMQ, blocklist dinâmica; recomendado Redis 6.2+)
-  echo ""
-  echo "  Redis: usado para filas (campanhas/faturas) e blocklist. Deixe host vazio para não usar."
-  prompt_text IO_REDIS_SERVER "Host do Redis (vazio = não usar Redis)" "127.0.0.1"
-  if [[ -n "$IO_REDIS_SERVER" ]]; then
-    prompt_text IO_REDIS_PORT "Porta do Redis" "6379"
-    prompt_text IO_REDIS_PASSWORD "Senha do Redis (vazio = usar mesma senha do banco)" "" 1
-    prompt_text IO_REDIS_DB_SESSION "Número do DB Redis (0-15)" "2"
-  else
-    IO_REDIS_PORT="6379"
-    IO_REDIS_PASSWORD=""
-    IO_REDIS_DB_SESSION="2"
-  fi
-
-  # Chrome/Puppeteer (opcional - WhatsApp; padrão headless ou Docker Browserless)
-  echo ""
-  echo "  Chrome/Puppeteer: para WhatsApp. Pode usar Docker Browserless (Chrome remoto) ou deixar vazio."
-  resp=$(prompt_yesno "Instalar Chrome remoto (Docker Browserless) agora?" "n")
-  if [[ "$resp" == "s" ]]; then
-    if eval "$("${PROJECT_ROOT}/scripts/install_chrome_ws.sh" 2>/dev/null)"; then
-      CHROME_BIN="${CHROME_BIN:-}"
-      CHROME_WS="${CHROME_WS:-}"
-      log_ok "Browserless subiu. CHROME_WS sera gravado no .env."
-    else
-      log_warn "Docker nao disponivel ou falha. Use Chrome local (deixe CHROME_WS vazio)."
-      CHROME_BIN=""
-      CHROME_WS=""
-    fi
-  else
-    prompt_text CHROME_BIN "Caminho do Chrome (vazio = padrão)" ""
-    prompt_text CHROME_WS "URL WebSocket Chrome existente (vazio = não usar)" ""
-  fi
+  # Redis: fixo 127.0.0.1, senha = mesma do PostgreSQL (filas BullMQ, blocklist)
+  IO_REDIS_SERVER="127.0.0.1"
+  IO_REDIS_PORT="6379"
+  IO_REDIS_PASSWORD=""
+  IO_REDIS_DB_SESSION="2"
 
   # Salvar config para install_instancia
   mkdir -p "$PROJECT_ROOT"
@@ -121,10 +94,6 @@ IO_REDIS_SERVER=$IO_REDIS_SERVER
 IO_REDIS_PORT=$IO_REDIS_PORT
 IO_REDIS_PASSWORD=$IO_REDIS_PASSWORD
 IO_REDIS_DB_SESSION=$IO_REDIS_DB_SESSION
-CHROME_BIN=${CHROME_BIN:-}
-CHROME_WS=${CHROME_WS:-}
-BROWSERLESS_TOKEN=${BROWSERLESS_TOKEN:-}
-BROWSERLESS_PORT=${BROWSERLESS_PORT:-}
 CONFIGEOF
   chmod 600 "${PROJECT_ROOT}/config"
   log_ok "Configuração salva em ${PROJECT_ROOT}/config"

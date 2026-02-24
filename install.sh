@@ -25,24 +25,37 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+CYAN_LIGHT='\033[1;36m'
 MAGENTA='\033[0;35m'
 BOLD='\033[1m'
+WHITE='\033[1;37m'
 NC='\033[0m'
 
-show_banner() {
+print_banner() {
   clear
-  echo -e ""
-  echo -e "${CYAN}╔══════════════════════════════════════════════════════════════════╗${NC}"
-  echo -e "${CYAN}║${NC}                                                                  ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ██████╗  ██████╗ ${NC}   ${BOLD}WhatsApp Group Sender SaaS - Instalador${NC}               ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ██╔══██╗██╔═══██╗${NC}   Nginx • Certbot • PM2 • PostgreSQL • Node.js         ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ██████╔╝██║   ██║${NC}                                                 ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ██╔═══╝ ██║   ██║${NC}   ${MAGENTA}[ GP ]${NC} Inserir em meu installer                       ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ██║     ╚██████╔╝${NC}                                                 ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}  ${GREEN} ╚═╝      ╚═════╝ ${NC}                                                 ${CYAN}║${NC}"
-  echo -e "${CYAN}║${NC}                                                                  ${CYAN}║${NC}"
-  echo -e "${CYAN}╚══════════════════════════════════════════════════════════════════╝${NC}"
-  echo -e ""
+  printf "\n\n"
+  printf "${GREEN}";
+  printf "                                                     ▄▄█▀▀▀▀▀▀▀█▄▄  \n";
+  printf "                                                   ${GREEN}▄█▀${NC}   ${WHITE}▄▄${NC}      ${GREEN}▀█▄\n";
+  printf "                                                   ${GREEN}█${NC}    ${WHITE}███${NC}         ${GREEN}█\n";
+  printf "                                                   ${GREEN}█${NC}    ${WHITE}██▄         ${GREEN}█${NC}\n";
+  printf "                                                   ${GREEN}█${NC}     ${WHITE}▀██▄${NC} ${WHITE}██${NC}    ${GREEN}█\n";
+  printf "                                                   ${GREEN}█${NC}       ${WHITE}▀███▀${NC}    ${GREEN}█\n";
+  printf "                                                   ${GREEN}▀█▄           ▄█▀\n";
+  printf "                                                    ▄█    ▄▄▄▄█▀▀  \n";
+  printf "                                                    █  ▄█▀        \n";
+  printf "                                                    ▀▀▀▀          \n";
+  printf "${NC}";
+  printf "\n"
+  printf "${GREEN}";
+  printf "██████╗░██╗░░░░░░██╗░░░░░░░██╗\n";
+  printf "██╔══██╗██║░░░░░░██║░░██╗░░██║\n";
+  printf "██████╔╝██║░░░░░░╚██╗████╗██╔╝\n";
+  printf "██╔═══╝░██║░░░░░░░████╔═████║░\n";
+  printf "██║░░░░░███████╗░░╚██╔╝░╚██╔╝░\n";
+  printf "╚═╝░░░░░╚══════╝░░░╚═╝░░░╚═╝░░\n";
+  printf "${NC}";
+  printf "\n"
 }
 
 show_menu() {
@@ -53,18 +66,17 @@ show_menu() {
   echo -e "  ${GREEN}3)${NC} Trocar domínio         - Alterar domínios API/App e gerar novo SSL"
   echo -e "  ${GREEN}4)${NC} Remover instalação     - Parar PM2, remover Nginx, opcional: banco/dados"
   echo -e "  ${GREEN}5)${NC} Atualizar              - Puxar alterações do GitHub e recompilar"
-  echo -e "  ${GREEN}6)${NC} Corrigir QR (Puppeteer) - Dependências Chrome para WhatsApp gerar QR code"
-  echo -e "  ${GREEN}7)${NC} Ver portas ocupadas    - Listar portas em uso para evitar conflito entre instâncias"
+  echo -e "  ${GREEN}6)${NC} Ver portas ocupadas   - Listar portas em uso para evitar conflito entre instâncias"
   echo -e "  ${GREEN}0)${NC} Sair"
   echo -e ""
 }
 
 main() {
   while true; do
-    show_banner
+    print_banner
     show_menu
 
-    read -p "  Opção [0-7]: " opcao
+    read -p "  Opção [0-6]: " opcao
 
     case "$opcao" in
       1)
@@ -102,11 +114,6 @@ main() {
         read -p "Pressione Enter para voltar ao menu..." dummy
         ;;
       6)
-        echo ""
-        "${PROJECT_ROOT}/scripts/install_puppeteer_deps.sh"
-        read -p "Pressione Enter para voltar ao menu..." dummy
-        ;;
-      7)
         echo ""
         "${PROJECT_ROOT}/scripts/ver_portas_ocupadas.sh"
         read -p "Pressione Enter para voltar ao menu..." dummy
