@@ -11,6 +11,7 @@ backend_nginx_setup() {
   
   sudo tee "$cfg" << NGINXEOF
 server {
+    client_max_body_size 1024M;
     listen 80;
     server_name ${subdomain};
     location / {
@@ -54,6 +55,7 @@ frontend_nginx_setup() {
   
   sudo tee "$cfg" << NGINXEOF
 server {
+    client_max_body_size 1024M;
     listen 80;
     server_name ${subdomain};
     root ${inst_dir}/frontend/dist;
@@ -98,6 +100,7 @@ frontend_nginx_static() {
   
   sudo tee "$cfg" << NGINXEOF
 server {
+    client_max_body_size 1024M;
     listen 80;
     server_name ${subdomain};
     root ${inst_dir}/frontend/dist;
@@ -134,6 +137,26 @@ system_nginx_restart() {
   log_step "Testando e reiniciando Nginx..."
   sudo nginx -t && sudo systemctl reload nginx
   log_ok "Nginx reiniciado"
+}
+
+# Aplica client_max_body_size 1024M em configs existentes (para envio de mídias).
+# Usado pelo script de atualização para instalações já em produção.
+nginx_ensure_client_max_body_size() {
+  local inst_name="$1"
+  [[ -z "$inst_name" ]] && return 0
+  local modified=0
+  for cfg in "/etc/nginx/sites-available/${inst_name}-api" "/etc/nginx/sites-available/${inst_name}-app"; do
+    [[ -f "$cfg" ]] || continue
+    if ! grep -q 'client_max_body_size' "$cfg"; then
+      sudo sed -i '/^server {/a\    client_max_body_size 1024M;' "$cfg"
+      modified=1
+      log_step "Aplicado client_max_body_size 1024M em $cfg"
+    fi
+  done
+  if [[ $modified -eq 1 ]]; then
+    sudo nginx -t && sudo systemctl reload nginx
+    log_ok "Nginx atualizado (upload até 1024M)"
+  fi
 }
 
 system_certbot_setup() {

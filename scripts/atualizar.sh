@@ -118,6 +118,9 @@ if [[ -n "$SUBDOMAIN_FRONTEND" ]] && [[ -d "${INST_DIR}/frontend/dist" ]]; then
   nginx_fix_frontend_permissions "$INST_DIR"
 fi
 
+# Garantir client_max_body_size 1024M para envio de mídias (configs já existentes)
+nginx_ensure_client_max_body_size "${INSTANCE_NAME}"
+
 # Reiniciar PM2
 log_step "Reiniciando processos PM2..."
 sudo -u "${DEPLOY_USER:-deploy}" pm2 restart "${INSTANCE_NAME}-backend" 2>/dev/null || true
